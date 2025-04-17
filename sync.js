@@ -10,20 +10,23 @@ export const setup = () => {
   channel.subscribe("event", (message) => {
     console.log('Received sync message:', message.data);
     if (message.data.clientId === clientId) {
+      console.log('Ignoring sync message from self');
       return;
     }
     
     // Create and dispatch a custom event with the message data
+    const detail = {
+      data: message.data,
+      timestamp: message.timestamp,
+      clientId: message.data.clientId
+    }
     const syncEvent = new CustomEvent('syncMessage', {
-      detail: {
-        data: message.data,
-        timestamp: message.timestamp,
-        clientId: message.data.clientId
-      }
+      detail
     });
     
     // Dispatch the event on the window object
     window.dispatchEvent(syncEvent);
+    console.log(`Sync message dispatched: ${detail}`);
   });
 
   console.log('Setup complete');
