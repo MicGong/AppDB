@@ -52,7 +52,8 @@ const setupSync = (clientId) => {
 }
 
 class AppManager {
-  constructor(mergeFunction) {
+  constructor(appName, mergeFunction) {
+    this.appName = appName;
     this.clientId = 'client_' + Math.random().toString(36).substring(2, 15);
     this.state = null;
     this.pendingEventsWithState = [];
@@ -91,7 +92,11 @@ class AppManager {
   
   async #fetchInitialState() {
     try {
-      const response = await fetch(`${serverUrl}/state`);
+      const response = await fetch(`${serverUrl}/state`, {
+        headers: {
+          'Application-Name': this.appName
+        }
+      });
       if (!response.ok) throw new Error(`Failed to fetch state: ${response.statusText}`);
       this.state = await response.json();
       return this.state;
@@ -108,7 +113,8 @@ class AppManager {
       const response = await fetch(`${serverUrl}/merge_func`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Application-Name': this.appName
         },
         body: JSON.stringify({ function: mergeFuncString })
       });
@@ -163,7 +169,8 @@ class AppManager {
       const response = await fetch(`${serverUrl}/event`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Application-Name': this.appName
         },
         body: JSON.stringify(event)
       });
