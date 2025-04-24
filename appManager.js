@@ -276,8 +276,8 @@ class AppManager {
   }
   
   handleSyncMessage(event) {
-    const { data } = event.detail;
-
+    const { data: dataRaw } = event.detail;
+    const data = JSON.parse(dataRaw);
     if (this.pendingEventsWithState.length > 0) {
       // Temporarily revert all pending local events
       const serverState = this.pendingEventsWithState.at(0)?.state;
@@ -304,11 +304,6 @@ class AppManager {
   // Public API methods
   getState() {
     return this.state;
-  }
-  
-  subscribe(callback) {
-    window.addEventListener('stateChange', callback);
-    return () => window.removeEventListener('stateChange', callback);
   }
   
   subscribeToConnectionChanges(callback) {
