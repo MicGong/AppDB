@@ -85,7 +85,7 @@ class AppManager {
         console.log('Ignoring sync event from self');
         return;
       }
-      this.handleSyncMessage(event);
+      this.#handleSyncMessage(event);
     })
 
   }
@@ -127,37 +127,6 @@ class AppManager {
     }
   }
   
-  // Apply an event locally and queue for server sync
-  applyEvent(eventData) {
-    // Generate a unique ID for this event if not provided
-    const eventId = eventData.id || `event_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const event = {
-      ...eventData,
-      id: eventId,
-      timestamp: Date.now(),
-      clientId: this.clientId,
-      status: EVENT_STATUS.PENDING
-    };
-    
-    // Store the current state before applying the event
-    const stateBeforeEvent = { ...this.state };
-    
-    // Apply optimistic update locally
-    this.applyEventToLocalState(event);
-    
-    // Add to pending events queue with the state it will be applied on
-    this.pendingEventsWithState.push({
-      event: event,
-      state: stateBeforeEvent
-    });
-    
-    // Attempt to sync with server if online
-    if (this.isOnline) {
-      this.syncEventWithServer(event);
-    }
-    
-    return eventId;
-  }
   
   // Apply the event to local state using merge function
   applyEventToLocalState(event) {
@@ -165,6 +134,7 @@ class AppManager {
   }
   
   async syncEventWithServer(event) {
+    const { status, ...eventWithoutStatus } = event;
     try {
       const response = await fetch(`${serverUrl}/event`, {
         method: 'POST',
@@ -172,7 +142,7 @@ class AppManager {
           'Content-Type': 'application/json',
           'Application-Name': this.appName
         },
-        body: JSON.stringify(event)
+        body: JSON.stringify(eventWithoutStatus)
       });
       
       if (!response.ok) throw new Error(`Server rejected event: ${response.statusText}`);
@@ -275,9 +245,13 @@ class AppManager {
     this.#notifyConnectionChange(true);
   }
   
-  handleSyncMessage(event) {
+  #handleSyncMessage(event) {
     const { data: dataRaw } = event.detail;
-    const data = JSON.parse(dataRaw);
+    // make sure the status is acknowledged
+    const data = {
+      ...JSON.parse(dataRaw),
+      status: EVENT_STATUS.ACKNOWLEDGED
+    };
     if (this.pendingEventsWithState.length > 0) {
       // Temporarily revert all pending local events
       const serverState = this.pendingEventsWithState.at(0)?.state;
@@ -301,7 +275,41 @@ class AppManager {
     window.dispatchEvent(connectionEvent);
   }
   
-  // Public API methods
+  /**
+   * Public API methods
+   * */ 
+
+  applyEvent(eventData) {
+    // Generate a unique ID for this event if not provided
+    const eventId = eventData.id || `event_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const event = {
+      ...eventData,
+      id: eventId,
+      timestamp: Date.now(),
+      clientId: this.clientId,
+      status: EVENT_STATUS.PENDING
+    };
+    
+    // Store the current state before applying the event
+    const stateBeforeEvent = { ...this.state };
+    
+    // Apply optimistic update locally
+    this.applyEventToLocalState(event);
+    
+    // Add to pending events queue with the state it will be applied on
+    this.pendingEventsWithState.push({
+      event: event,
+      state: stateBeforeEvent
+    });
+    
+    // Attempt to sync with server if online
+    if (this.isOnline) {
+      this.syncEventWithServer(event);
+    }
+    
+    return eventId;
+  }
+
   getState() {
     return this.state;
   }
