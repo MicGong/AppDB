@@ -78,6 +78,7 @@ class AppManager {
     // Setup event listeners for online/offline status
     window.addEventListener('online', this.#handleOnlineStatus.bind(this));
     window.addEventListener('offline', this.#handleOnlineStatus.bind(this));
+    console.log('AppManager initialized clientId', this.clientId);
   }
   
   async #initializeSync() {
