@@ -52,7 +52,7 @@ const setupSync = (clientId) => {
 }
 
 class AppManager {
-  constructor(appName, mergeFunction) {
+  constructor(appName, mergeFunction, transformFunction) {
     this.appName = appName;
     this.clientId = 'client_' + Math.random().toString(36).substring(2, 15);
     this.state = null;
@@ -69,8 +69,11 @@ class AppManager {
     this.#fetchInitialState();
 
     // Register merge function
-    this.registerMergeFunction(mergeFunction);
+    this.#registerMergeFunction(mergeFunction);
     this.mergeFunction = new Function("return " + mergeFunction)();
+
+    // Register transform function
+    this.#registerTransformFunction(transformFunction);
     
     // Setup event listeners for online/offline status
     window.addEventListener('online', this.#handleOnlineStatus.bind(this));
@@ -108,7 +111,7 @@ class AppManager {
     }
   }
   
-  async registerMergeFunction(mergeFuncString) {
+  async #registerMergeFunction(mergeFuncString) {
     try {
       const response = await fetch(`${serverUrl}/merge_func`, {
         method: 'POST',
@@ -127,6 +130,24 @@ class AppManager {
     }
   }
   
+  async #registerTransformFunction(transformFuncString) {
+    try {
+      const response = await fetch(`${serverUrl}/transform_func`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Application-Name': this.appName
+        },
+        body: JSON.stringify({ function: transformFuncString })
+      });
+      
+      if (!response.ok) throw new Error(`Failed to register merge function: ${response.statusText}`);
+      return true;
+    } catch (error) {
+      console.error('Error registering merge function:', error);
+      return false;
+    }
+  }
   
   // Apply the event to local state using merge function
   applyEventToLocalState(event) {
