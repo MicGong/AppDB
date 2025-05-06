@@ -151,8 +151,7 @@ class AppManager {
   
   // Apply the event to local state using merge function
   applyEventToLocalState(event) {
-    const { state } = this.mergeFunction(this.state, event);
-    this.state = state;
+    this.state = this.mergeFunction(this.state, event);
   }
   
   async syncEventWithServer(event) {
@@ -278,15 +277,13 @@ class AppManager {
       // Temporarily revert all pending local events
       const serverState = this.pendingEventsWithState.at(0)?.state;
       // Apply the server event to the state
-      const { state } = this.mergeFunction(serverState, data);
-      this.state = state;
+      this.state = this.mergeFunction(serverState, data);
       // Re-apply all pending local events
       this.pendingEventsWithState.forEach(item => {
         this.applyEventToLocalState(item.event);
       });
     } else {
-      const { state } = this.mergeFunction(this.state, data);
-      this.state = state;
+      this.state = this.mergeFunction(this.state, data);
     }
     
   }
